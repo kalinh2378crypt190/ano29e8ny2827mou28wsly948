@@ -8,65 +8,38 @@
     :root {
       --bg:#000;
       --green:#00ff41;
-      --muted:#0a0;
       --warn:#ffcc00;
     }
-    html,body { height:100%; margin:0; background:var(--bg); color:var(--green); font-family: "Courier New", monospace; }
-    .container {
+    html,body {
       height:100%;
-      display:flex;
-      padding:28px;
-      box-sizing:border-box;
-      align-items:flex-start;
+      margin:0;
+      background:var(--bg);
+      color:var(--green);
+      font-family:"Courier New", monospace;
     }
-
-    /* terminal area full width */
     .terminal {
-      flex:1;
       width:100%;
-      height:calc(100% - 56px);
-      background:linear-gradient(180deg, rgba(0,0,0,0.85), rgba(0,0,0,0.95));
-      border:1px solid rgba(0,255,65,0.06);
-      padding:18px;
+      height:100%;
+      padding:20px;
+      box-sizing:border-box;
       overflow:auto;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
-      position:relative;
     }
-    .line { white-space:pre-wrap; font-size:15px; line-height:1.45; color:var(--green); }
+    .line { white-space:pre-wrap; font-size:15px; line-height:1.45; }
     .muted { color:rgba(0,255,65,0.45); font-size:13px; }
-    .cursor {
-      display:inline-block;
-      width:10px;
-      height:18px;
-      background:var(--green);
-      margin-left:6px;
-      vertical-align:bottom;
-      animation: blink 900ms steps(1) infinite;
-    }
-    @keyframes blink { 50% { opacity:0; } }
-
-    /* responsive */
-    @media (max-width:900px) {
-      .container { padding:16px; }
-      .terminal { height:auto; max-height:100vh; }
-    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="terminal" id="terminal" aria-live="polite">
-      <div class="line muted">[SYSTEM] Iniciando ambiente seguro...</div>
-      <div class="line" id="typed"></div>
-      <div class="line muted" id="status"></div>
-      <div class="line muted" id="ipline"></div>
-      <div class="line muted" id="agentline"></div>
-      <div class="line muted" id="timeline"></div>
-      <div class="line" id="finalmsg"></div>
-    </div>
+  <div class="terminal" id="terminal">
+    <div class="line muted">[SYSTEM] Iniciando ambiente seguro...</div>
+    <div class="line" id="typed"></div>
+    <div class="line muted" id="status"></div>
+    <div class="line muted" id="ipline"></div>
+    <div class="line muted" id="agentline"></div>
+    <div class="line muted" id="timeline"></div>
+    <div class="line" id="finalmsg"></div>
   </div>
 
   <script>
-    // Texto a ser digitado (simulação)
     const script = [
       "[BOOT] kernel 5.12.0 loaded",
       "[INIT] módulos de rede: OK",
@@ -84,24 +57,18 @@
     const timeLineEl = document.getElementById('timeline');
     const finalMsgEl = document.getElementById('finalmsg');
 
-    // typing function with variable speed and small mistakes
     function typeTo(el, text, baseSpeed=22) {
       return new Promise(resolve => {
         let i = 0;
-        const mistakes = Math.random() < 0.12;
         const interval = setInterval(() => {
-          if (mistakes && Math.random() < 0.01 && i>2) {
-            el.textContent = el.textContent.slice(0, -1);
-            return;
-          }
           el.textContent += text.charAt(i);
           i++;
           if (i >= text.length) {
             clearInterval(interval);
             el.textContent += "\n";
-            setTimeout(resolve, 220 + Math.random()*300);
+            setTimeout(resolve, 200);
           }
-        }, baseSpeed + Math.random()*35);
+        }, baseSpeed + Math.random()*30);
       });
     }
 
@@ -111,66 +78,33 @@
         await typeTo(typedEl, script[i]);
       }
       statusEl.textContent = "[STATUS] concluído";
-      await new Promise(r => setTimeout(r, 400));
       await fetchAndShowInfo();
       await showSimulatedTrace();
       finalMsgEl.innerHTML = "<span style='color:#ffcc00'>[AVISO]</span> Cuidado com os links que você clica. Verifique sempre a origem.";
     }
 
-    // fetch IP and basic info from public API
     async function fetchAndShowInfo() {
       try {
         const res = await fetch('https://ipapi.co/json/');
-        if (!res.ok) throw new Error('API');
         const data = await res.json();
-        const ip = data.ip || 'desconhecido';
-        const city = data.city || '';
-        const region = data.region || '';
-        const country = data.country_name || '';
-        const org = data.org || '';
-        ipLineEl.textContent = "[IP] " + ip;
+        ipLineEl.textContent = "[IP] " + (data.ip || 'desconhecido');
         agentLineEl.textContent = "[AGENT] " + navigator.userAgent;
-        const loc = [city, region, country].filter(Boolean).join(' — ');
         timeLineEl.textContent = "[HORA LOCAL] " + new Date().toLocaleString();
-        // show brief info inline
-        const info = `IP: ${ip} — Local: ${loc || 'indisponível'} — Org: ${org || 'indisponível'}`;
-        // append as a muted line for clarity
-        const infoLine = document.createElement('div');
-        infoLine.className = 'line muted';
-        infoLine.textContent = info;
-        document.getElementById('terminal').appendChild(infoLine);
-      } catch (e) {
+      } catch {
         ipLineEl.textContent = "[IP] indisponível";
         agentLineEl.textContent = "[AGENT] " + navigator.userAgent;
         timeLineEl.textContent = "[HORA LOCAL] " + new Date().toLocaleString();
-        const infoLine = document.createElement('div');
-        infoLine.className = 'line muted';
-        infoLine.textContent = "Não foi possível obter dados externos";
-        document.getElementById('terminal').appendChild(infoLine);
       }
     }
 
-    // Simulated traceroute / hops for visual effect
     async function showSimulatedTrace() {
-      const hops = [
-        "192.168.0.1",
-        "10.14.0.1",
-        "54.239.28.85",
-        "104.244.42.1",
-        "172.217.16.142"
-      ];
+      const hops = ["192.168.0.1","10.14.0.1","54.239.28.85","104.244.42.1","172.217.16.142"];
       for (let i=0;i<hops.length;i++){
         await typeTo(typedEl, `[TRACE] hop ${i+1}: ${hops[i]} (${Math.floor(10+Math.random()*120)} ms)`, 18);
       }
     }
 
-    // Run once on load; no replay
-    window.addEventListener('load', () => {
-      if (!window.__terminalHasRun) {
-        window.__terminalHasRun = true;
-        runOnce();
-      }
-    });
+    window.addEventListener('load', runOnce);
   </script>
 </body>
 </html>
