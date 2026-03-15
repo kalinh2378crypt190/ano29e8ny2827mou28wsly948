@@ -1,20 +1,250 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>msg</title>
-<style>
-body{
-  background:black;
-  color:red;
-  font-size:40px;
-  text-align:center;
-  margin-top:20%;
-  font-family:monospace;
-}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Terminal</title>
+  <style>
+    :root {
+      --bg:#000;
+      --green:#00ff41;
+      --muted:#0a0;
+      --warn:#ffcc00;
+    }
+    html,body { height:100%; margin:0; background:var(--bg); color:var(--green); font-family: "Courier New", monospace; }
+    .container {
+      height:100%;
+      display:flex;
+      gap:20px;
+      padding:28px;
+      box-sizing:border-box;
+      align-items:flex-start;
+    }
+
+    /* left: terminal area */
+    .terminal {
+      flex:1;
+      max-width:980px;
+      height:calc(100% - 56px);
+      background:linear-gradient(180deg, rgba(0,0,0,0.85), rgba(0,0,0,0.95));
+      border:1px solid rgba(0,255,65,0.06);
+      padding:18px;
+      overflow:auto;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      position:relative;
+    }
+    .line { white-space:pre-wrap; font-size:15px; line-height:1.45; color:var(--green); }
+    .muted { color:rgba(0,255,65,0.45); font-size:13px; }
+    .cursor {
+      display:inline-block;
+      width:10px;
+      height:18px;
+      background:var(--green);
+      margin-left:6px;
+      vertical-align:bottom;
+      animation: blink 900ms steps(1) infinite;
+    }
+    @keyframes blink { 50% { opacity:0; } }
+
+    /* right: info panel */
+    .panel {
+      width:320px;
+      min-width:220px;
+      color:var(--muted);
+      font-size:13px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .panel .box {
+      padding:12px;
+      border:1px solid rgba(0,255,65,0.06);
+      background:rgba(0,0,0,0.45);
+      border-radius:6px;
+    }
+    .panel h4 { margin:0 0 8px 0; color:var(--green); font-size:13px; letter-spacing:1px; }
+
+    .warning {
+      margin-top:8px;
+      padding:12px;
+      border-left:4px solid var(--warn);
+      background:rgba(255,204,0,0.03);
+      color:var(--warn);
+      font-weight:600;
+      border-radius:4px;
+    }
+
+    /* glitch effect for header */
+    .glitch {
+      position:relative;
+      display:inline-block;
+      color:var(--green);
+      font-weight:700;
+      letter-spacing:2px;
+      text-transform:uppercase;
+    }
+    .glitch::before, .glitch::after {
+      content:attr(data-text);
+      position:absolute;
+      left:0; top:0;
+      opacity:0.6;
+      clip-path:rect(0,9999px,0,0);
+    }
+    .glitch::before { transform:translate(2px,-1px); color:#66ff99; animation:glitchTop 2.5s infinite linear; }
+    .glitch::after { transform:translate(-2px,1px); color:#00cc33; animation:glitchBot 3s infinite linear; }
+    @keyframes glitchTop { 0%{clip-path:rect(0,9999px,0,0);} 10%{clip-path:rect(0,9999px,8px,0);} 20%{clip-path:rect(0,9999px,0,0);} 100%{clip-path:rect(0,9999px,0,0);} }
+    @keyframes glitchBot { 0%{clip-path:rect(0,9999px,0,0);} 15%{clip-path:rect(6px,9999px,9999px,0);} 30%{clip-path:rect(0,9999px,0,0);} 100%{clip-path:rect(0,9999px,0,0);} }
+
+    /* responsive */
+    @media (max-width:900px) {
+      .container { flex-direction:column; padding:16px; }
+      .panel { width:100%; order:2; }
+      .terminal { order:1; height:auto; max-height:60vh; }
+    }
+  </style>
 </head>
 <body>
-ig ur lost yur ip :p
+  <div class="container">
+    <div class="terminal" id="terminal" aria-live="polite">
+      <div class="line muted">[SYSTEM] Iniciando ambiente seguro...</div>
+      <div class="line" id="typed"></div>
+      <div class="line muted" id="status"></div>
+      <div class="line muted" id="ipline"></div>
+      <div class="line muted" id="agentline"></div>
+      <div class="line muted" id="timeline"></div>
+      <div class="line" id="finalmsg"></div>
+    </div>
+
+    <aside class="panel" aria-hidden="false">
+      <div class="box">
+        <div class="glitch" data-text="TERMINAL">TERMINAL</div>
+        <div style="margin-top:8px" class="muted">Simulação visual — apenas informativo</div>
+      </div>
+
+      <div class="box" id="quickinfo">
+        <h4>Informações detectadas</h4>
+        <div id="infoList" class="muted">Coletando...</div>
+      </div>
+
+      <div class="box warning" id="warnBox">
+        <strong>Atenção</strong>
+        <div style="margin-top:6px; font-weight:400; color:#fff;">
+          Cuidado com os links que você clica. Verifique a origem antes de abrir qualquer URL.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // Texto a ser digitado (simulação)
+    const script = [
+      "[BOOT] kernel 5.12.0 loaded",
+      "[INIT] módulos de rede: OK",
+      "[SCAN] varredura de portas: iniciada",
+      "[SCAN] varredura de portas: concluída",
+      "[INFO] coletando metadados do host",
+      "[INFO] analisando tráfego (simulado)",
+      "[RESULT] verificação finalizada"
+    ];
+
+    const typedEl = document.getElementById('typed');
+    const statusEl = document.getElementById('status');
+    const ipLineEl = document.getElementById('ipline');
+    const agentLineEl = document.getElementById('agentline');
+    const timeLineEl = document.getElementById('timeline');
+    const finalMsgEl = document.getElementById('finalmsg');
+    const infoList = document.getElementById('infoList');
+
+    // typing function with variable speed and small mistakes
+    function typeTo(el, text, baseSpeed=22) {
+      return new Promise(resolve => {
+        let i = 0;
+        const mistakes = Math.random() < 0.12;
+        const interval = setInterval(() => {
+          // occasional backspace simulation
+          if (mistakes && Math.random() < 0.01 && i>2) {
+            el.textContent = el.textContent.slice(0, -1);
+            return;
+          }
+          el.textContent += text.charAt(i);
+          i++;
+          if (i >= text.length) {
+            clearInterval(interval);
+            el.textContent += "\n";
+            setTimeout(resolve, 220 + Math.random()*300);
+          }
+        }, baseSpeed + Math.random()*35);
+      });
+    }
+
+    async function run() {
+      for (let i=0;i<script.length;i++){
+        statusEl.textContent = "[STATUS] " + (i+1) + "/" + script.length;
+        await typeTo(typedEl, script[i]);
+      }
+      statusEl.textContent = "[STATUS] concluído";
+      await new Promise(r => setTimeout(r, 400));
+      await fetchAndShowInfo();
+      await showSimulatedTrace();
+      finalMsgEl.innerHTML = "<span style='color:#ffcc00'>[AVISO]</span> Cuidado com os links que você clica. Verifique sempre a origem.";
+    }
+
+    // fetch IP and basic info from public API
+    async function fetchAndShowInfo() {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (!res.ok) throw new Error('API');
+        const data = await res.json();
+        const ip = data.ip || 'desconhecido';
+        const city = data.city || '';
+        const region = data.region || '';
+        const country = data.country_name || '';
+        const org = data.org || '';
+        ipLineEl.textContent = "[IP] " + ip;
+        agentLineEl.textContent = "[AGENT] " + navigator.userAgent;
+        const loc = [city, region, country].filter(Boolean).join(' — ');
+        timeLineEl.textContent = "[HORA LOCAL] " + new Date().toLocaleString();
+        infoList.innerHTML = `
+          <div>IP: <strong style="color:#fff">${ip}</strong></div>
+          <div>Localização aproxim${loc || 'indisponível'}</strong></div>
+          <div>Provedor/Org: <strong style="color:#fff">${org || 'indisponível'}</strong></div>
+        `;
+      } catch (e) {
+        ipLineEl.textContent = "[IP] indisponível";
+        agentLineEl.textContent = "[AGENT] " + navigator.userAgent;
+        timeLineEl.textContent = "[HORA LOCAL] " + new Date().toLocaleString();
+        infoList.textContent = "Não foi possível obter dados externos";
+      }
+    }
+
+    // Simulated traceroute / hops for visual effect
+    async function showSimulatedTrace() {
+      const hops = [
+        "192.168.0.1",
+        "10.14.0.1",
+        "54.239.28.85",
+        "104.244.42.1",
+        "172.217.16.142"
+      ];
+      for (let i=0;i<hops.length;i++){
+        await typeTo(typedEl, `[TRACE] hop ${i+1}: ${hops[i]} (${Math.floor(10+Math.random()*120)} ms)`, 18);
+      }
+    }
+
+    // start
+    run();
+
+    // allow click to replay
+    document.body.addEventListener('click', () => {
+      typedEl.textContent = '';
+      statusEl.textContent = '';
+      ipLineEl.textContent = '';
+      agentLineEl.textContent = '';
+      timeLineEl.textContent = '';
+      finalMsgEl.textContent = '';
+      infoList.textContent = 'Coletando...';
+      run();
+    });
+  </script>
 </body>
 </html>
