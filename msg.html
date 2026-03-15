@@ -15,16 +15,15 @@
     .container {
       height:100%;
       display:flex;
-      gap:20px;
       padding:28px;
       box-sizing:border-box;
       align-items:flex-start;
     }
 
-    /* left: terminal area */
+    /* terminal area full width */
     .terminal {
       flex:1;
-      max-width:980px;
+      width:100%;
       height:calc(100% - 56px);
       background:linear-gradient(180deg, rgba(0,0,0,0.85), rgba(0,0,0,0.95));
       border:1px solid rgba(0,255,65,0.06);
@@ -46,60 +45,10 @@
     }
     @keyframes blink { 50% { opacity:0; } }
 
-    /* right: info panel */
-    .panel {
-      width:320px;
-      min-width:220px;
-      color:var(--muted);
-      font-size:13px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-    .panel .box {
-      padding:12px;
-      border:1px solid rgba(0,255,65,0.06);
-      background:rgba(0,0,0,0.45);
-      border-radius:6px;
-    }
-    .panel h4 { margin:0 0 8px 0; color:var(--green); font-size:13px; letter-spacing:1px; }
-
-    .warning {
-      margin-top:8px;
-      padding:12px;
-      border-left:4px solid var(--warn);
-      background:rgba(255,204,0,0.03);
-      color:var(--warn);
-      font-weight:600;
-      border-radius:4px;
-    }
-
-    /* glitch effect for header */
-    .glitch {
-      position:relative;
-      display:inline-block;
-      color:var(--green);
-      font-weight:700;
-      letter-spacing:2px;
-      text-transform:uppercase;
-    }
-    .glitch::before, .glitch::after {
-      content:attr(data-text);
-      position:absolute;
-      left:0; top:0;
-      opacity:0.6;
-      clip-path:rect(0,9999px,0,0);
-    }
-    .glitch::before { transform:translate(2px,-1px); color:#66ff99; animation:glitchTop 2.5s infinite linear; }
-    .glitch::after { transform:translate(-2px,1px); color:#00cc33; animation:glitchBot 3s infinite linear; }
-    @keyframes glitchTop { 0%{clip-path:rect(0,9999px,0,0);} 10%{clip-path:rect(0,9999px,8px,0);} 20%{clip-path:rect(0,9999px,0,0);} 100%{clip-path:rect(0,9999px,0,0);} }
-    @keyframes glitchBot { 0%{clip-path:rect(0,9999px,0,0);} 15%{clip-path:rect(6px,9999px,9999px,0);} 30%{clip-path:rect(0,9999px,0,0);} 100%{clip-path:rect(0,9999px,0,0);} }
-
     /* responsive */
     @media (max-width:900px) {
-      .container { flex-direction:column; padding:16px; }
-      .panel { width:100%; order:2; }
-      .terminal { order:1; height:auto; max-height:60vh; }
+      .container { padding:16px; }
+      .terminal { height:auto; max-height:100vh; }
     }
   </style>
 </head>
@@ -114,25 +63,6 @@
       <div class="line muted" id="timeline"></div>
       <div class="line" id="finalmsg"></div>
     </div>
-
-    <aside class="panel" aria-hidden="false">
-      <div class="box">
-        <div class="glitch" data-text="TERMINAL">TERMINAL</div>
-        <div style="margin-top:8px" class="muted">$ Error _</div>
-      </div>
-
-      <div class="box" id="quickinfo">
-        <h4>Informações detectadas</h4>
-        <div id="infoList" class="muted">Coletando...</div>
-      </div>
-
-      <div class="box warning" id="warnBox">
-        <strong>Atenção</strong>
-        <div style="margin-top:6px; font-weight:400; color:#fff;">
-          Seus metadados foram gravados e enviados ao servidor, verique quaisquer URLs antes de abri-las.
-        </div>
-      </div>
-    </aside>
   </div>
 
   <script>
@@ -153,7 +83,6 @@
     const agentLineEl = document.getElementById('agentline');
     const timeLineEl = document.getElementById('timeline');
     const finalMsgEl = document.getElementById('finalmsg');
-    const infoList = document.getElementById('infoList');
 
     // typing function with variable speed and small mistakes
     function typeTo(el, text, baseSpeed=22) {
@@ -161,7 +90,6 @@
         let i = 0;
         const mistakes = Math.random() < 0.12;
         const interval = setInterval(() => {
-          // occasional backspace simulation
           if (mistakes && Math.random() < 0.01 && i>2) {
             el.textContent = el.textContent.slice(0, -1);
             return;
@@ -177,7 +105,7 @@
       });
     }
 
-    async function run() {
+    async function runOnce() {
       for (let i=0;i<script.length;i++){
         statusEl.textContent = "[STATUS] " + (i+1) + "/" + script.length;
         await typeTo(typedEl, script[i]);
@@ -186,7 +114,7 @@
       await new Promise(r => setTimeout(r, 400));
       await fetchAndShowInfo();
       await showSimulatedTrace();
-      finalMsgEl.innerHTML = "<span style='color:#ffcc00'>[AVISO]</span> Vai virar pastinha no doxbinkkkkkkkk.";
+      finalMsgEl.innerHTML = "<span style='color:#ffcc00'>[AVISO]</span> Cuidado com os links que você clica. Verifique sempre a origem.";
     }
 
     // fetch IP and basic info from public API
@@ -204,16 +132,21 @@
         agentLineEl.textContent = "[AGENT] " + navigator.userAgent;
         const loc = [city, region, country].filter(Boolean).join(' — ');
         timeLineEl.textContent = "[HORA LOCAL] " + new Date().toLocaleString();
-        infoList.innerHTML = `
-          <div>IP: <strong style="color:#fff">${ip}</strong></div>
-          <div>Localização aproxim${loc || 'indisponível'}</strong></div>
-          <div>Provedor/Org: <strong style="color:#fff">${org || 'indisponível'}</strong></div>
-        `;
+        // show brief info inline
+        const info = `IP: ${ip} — Local: ${loc || 'indisponível'} — Org: ${org || 'indisponível'}`;
+        // append as a muted line for clarity
+        const infoLine = document.createElement('div');
+        infoLine.className = 'line muted';
+        infoLine.textContent = info;
+        document.getElementById('terminal').appendChild(infoLine);
       } catch (e) {
         ipLineEl.textContent = "[IP] indisponível";
         agentLineEl.textContent = "[AGENT] " + navigator.userAgent;
         timeLineEl.textContent = "[HORA LOCAL] " + new Date().toLocaleString();
-        infoList.textContent = "Não foi possível obter dados externos";
+        const infoLine = document.createElement('div');
+        infoLine.className = 'line muted';
+        infoLine.textContent = "Não foi possível obter dados externos";
+        document.getElementById('terminal').appendChild(infoLine);
       }
     }
 
@@ -231,19 +164,12 @@
       }
     }
 
-    // start
-    run();
-
-    // allow click to replay
-    document.body.addEventListener('click', () => {
-      typedEl.textContent = '';
-      statusEl.textContent = '';
-      ipLineEl.textContent = '';
-      agentLineEl.textContent = '';
-      timeLineEl.textContent = '';
-      finalMsgEl.textContent = '';
-      infoList.textContent = 'Coletando...';
-      run();
+    // Run once on load; no replay
+    window.addEventListener('load', () => {
+      if (!window.__terminalHasRun) {
+        window.__terminalHasRun = true;
+        runOnce();
+      }
     });
   </script>
 </body>
