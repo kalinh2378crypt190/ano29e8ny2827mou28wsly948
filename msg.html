@@ -118,7 +118,7 @@
     <aside class="panel" aria-hidden="false">
       <div class="box">
         <div class="glitch" data-text="TERMINAL">TERMINAL</div>
-        <div style="margin-top:8px" class="muted">Simulação visual — apenas informativo</div>
+        <div style="margin-top:8px" class="muted">$ Error _</div>
       </div>
 
       <div class="box" id="quickinfo">
@@ -129,7 +129,7 @@
       <div class="box warning" id="warnBox">
         <strong>Atenção</strong>
         <div style="margin-top:6px; font-weight:400; color:#fff;">
-          Cuidado com os links que você clica. Verifique a origem antes de abrir qualquer URL.
+          Seus metadados foram gravados e enviados ao servidor, verique quaisquer URLs antes de abri-las.
         </div>
       </div>
     </aside>
@@ -143,7 +143,7 @@
       "[SCAN] varredura de portas: iniciada",
       "[SCAN] varredura de portas: concluída",
       "[INFO] coletando metadados do host",
-      "[INFO] analisando tráfego (simulado)",
+      "[INFO] analisando tráfego (IP)",
       "[RESULT] verificação finalizada"
     ];
 
@@ -186,7 +186,7 @@
       await new Promise(r => setTimeout(r, 400));
       await fetchAndShowInfo();
       await showSimulatedTrace();
-      finalMsgEl.innerHTML = "<span style='color:#ffcc00'>[AVISO]</span> Cuidado com os links que você clica. Verifique sempre a origem.";
+      finalMsgEl.innerHTML = "<span style='color:#ffcc00'>[AVISO]</span> Vai virar pastinha no doxbinkkkkkkkk.";
     }
 
     // fetch IP and basic info from public API
