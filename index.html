@@ -3,168 +3,53 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Carregando</title>
+  <title>Carregando...</title>
+
+  <!-- Fonte Ubuntu Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --bg:#000;
-      --green:#00ff41;
-      --muted:#0a0;
+      --bg: #000;
+      --green: #00ff41;
     }
-    html,body { height:100%; margin:0; background:var(--bg); font-family: "Courier New", monospace; color:var(--green); }
-    .wrap {
-      height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      flex-direction:column;
-      gap:18px;
-      position:relative;
-      overflow:hidden;
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--green);
+      font-family: "Ubuntu Mono", monospace;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-
-    /* Matrix rain subtle background */
-    canvas#rain {
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      z-index:0;
-      opacity:0.12;
-      filter: blur(0.6px);
+    .center {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-
-    .card {
-      z-index:2;
-      text-align:center;
-      backdrop-filter: blur(2px);
+    .msg {
+      font-size: 20px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      user-select: none;
     }
-
-    .title {
-      font-size:28px;
-      letter-spacing:4px;
-      text-transform:uppercase;
-      color:var(--green);
-      text-shadow:0 0 8px rgba(0,255,65,0.12);
-    }
-
-    .progress {
-      width:360px;
-      height:12px;
-      border-radius:8px;
-      background:rgba(255,255,255,0.03);
-      margin-top:14px;
-      overflow:hidden;
-      box-shadow: inset 0 0 12px rgba(0,0,0,0.6);
-    }
-    .bar {
-      height:100%;
-      width:0%;
-      background:linear-gradient(90deg,#00ff41,#66ff99);
-      box-shadow:0 0 12px rgba(0,255,65,0.12);
-      transition: width 0.25s linear;
-    }
-
-    .sub {
-      margin-top:10px;
-      color:#6f6;
-      font-size:13px;
-      opacity:.9;
-    }
-
-    .small {
-      margin-top:18px;
-      color:rgba(0,255,65,0.12);
-      font-size:12px;
-    }
-
-    /* fade out before redirect */
-    .fade-out {
-      animation: fadeOut 700ms ease-in forwards;
-    }
-    @keyframes fadeOut {
-      to { opacity:0; transform: scale(.995); }
-    }
-
     @media (max-width:420px) {
-      .progress { width:86vw; }
-      .title { font-size:20px; }
+      .msg { font-size: 18px; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap" id="wrap">
-    <canvas id="rain"></canvas>
-    <div class="card" role="status" aria-live="polite">
-      <div class="title">CARREGANDO</div>
-      <div class="progress" aria-hidden="true">
-        <div class="bar" id="bar"></div>
-      </div>
-      <div class="sub" id="percent">0% — preparando ambiente</div>
-      <div class="small">Aguarde. Você será redirecionado em breve</div>
-    </div>
+  <div class="center" role="status" aria-live="polite">
+    <div class="msg">carregando...</div>
   </div>
 
   <script>
-    // Matrix rain canvas
-    const canvas = document.getElementById('rain');
-    const ctx = canvas.getContext('2d');
-    function resize() {
-      canvas.width = innerWidth;
-      canvas.height = innerHeight;
-      initCols();
-    }
-    window.addEventListener('resize', resize);
-    const letters = "01あいうえおアイウエオABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let fontSize = 14;
-    let columns = [];
-    function initCols() {
-      fontSize = Math.max(12, Math.floor(innerWidth / 80));
-      const cols = Math.floor(canvas.width / fontSize);
-      columns = new Array(cols).fill(0).map(() => Math.floor(Math.random() * canvas.height));
-    }
-    resize();
-    function draw() {
-      ctx.fillStyle = "rgba(0,0,0,0.06)";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle = "#00ff41";
-      ctx.font = fontSize + "px monospace";
-      for (let i=0;i<columns.length;i++){
-        const text = letters.charAt(Math.floor(Math.random()*letters.length));
-        ctx.fillText(text, i*fontSize, columns[i]*fontSize);
-        if (columns[i]*fontSize > canvas.height && Math.random() > 0.975) columns[i]=0;
-        columns[i]++;
-      }
-      requestAnimationFrame(draw);
-    }
-    draw();
-
-    // Progress bar + redirect
-    const bar = document.getElementById('bar');
-    const percent = document.getElementById('percent');
-    const TOTAL_MS = 4200;
-    const start = performance.now();
-    function step(now){
-      const elapsed = now - start;
-      const p = Math.min(1, elapsed / TOTAL_MS);
-      const pct = Math.floor(p*100);
-      bar.style.width = pct + '%';
-      const msgs = [
-        'preparando ambiente',
-        'carregando módulos',
-        'iniciando simulação',
-        'verificando rede',
-        'finalizando'
-      ];
-      const msg = msgs[Math.floor(p * msgs.length)];
-      percent.textContent = pct + '% — ' + msg;
-      if (p < 1) requestAnimationFrame(step);
-      else {
-        // fade then redirect
-        document.getElementById('wrap').classList.add('fade-out');
-        setTimeout(() => window.location.href = 'msg.html', 700);
-      }
-    }
-    requestAnimationFrame(step);
+    // Tempo em milissegundos antes do redirecionamento
+    const REDIRECT_MS = 1800;
+    setTimeout(() => {
+      window.location.href = 'msg.html';
+    }, REDIRECT_MS);
   </script>
 </body>
 </html>
